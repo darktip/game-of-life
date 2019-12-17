@@ -1,57 +1,58 @@
-﻿Shader "Unlit/NewUnlitShader"
+﻿Shader "Unlit/GameOfLifeSolver"
 {
-    Properties
-    {
-        _MainTex ("Texture", 2D) = "white" {}
-    }
     SubShader
-    {
-        Tags { "RenderType"="Opaque" }
-        LOD 100
+     {
+        Lighting Off
+        Blend One Zero
 
         Pass
         {
             CGPROGRAM
-            #pragma vertex vert
+            
+            #include "UnityCustomRenderTexture.cginc"
+            #pragma vertex CustomRenderTextureVertexShader
             #pragma fragment frag
-            // make fog work
-            #pragma multi_compile_fog
+            #pragma target 3.0
 
-            #include "UnityCG.cginc"
-
-            struct appdata
+            fixed4 SampleNeighbour(v2f_customrendertexture IN, int x, int y) : COLOR
             {
-                float4 vertex : POSITION;
-                float2 uv : TEXCOORD0;
-            };
-
-            struct v2f
-            {
-                float2 uv : TEXCOORD0;
-                UNITY_FOG_COORDS(1)
-                float4 vertex : SV_POSITION;
-            };
-
-            sampler2D _MainTex;
-            float4 _MainTex_ST;
-
-            v2f vert (appdata v)
-            {
-                v2f o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
-                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
-                UNITY_TRANSFER_FOG(o,o.vertex);
-                return o;
+                return tex2D(_SelfTexture2D, IN.globalTexcoord + float2(x / _CustomRenderTextureWidth, y / _CustomRenderTextureHeight));
             }
 
-            fixed4 frag (v2f i) : SV_Target
+            float4 frag(v2f_customrendertexture IN) : COLOR
             {
-                // sample the texture
-                fixed4 col = tex2D(_MainTex, i.uv);
-                // apply fog
-                UNITY_APPLY_FOG(i.fogCoord, col);
-                return col;
+                fixed4 self = SampleNeighbour(IN, 0,0);
+                
+                int neigbours = SampleNeighbour(IN, -1, -1).r + SampleNeighbour(IN, 0, -1).r + SampleNeighbour(IN, 1, -1).r +
+                                SampleNeighbour(IN, -1,  0).r +             0                + SampleNeighbour(IN, 1,  0).r +
+                                SampleNeighbour(IN, -1,  1).r + SampleNeighbour(IN, 0,  1).r + SampleNeighbour(IN, 1,  1).r;
+                
+                if(self.r == 1)
+                {
+                    if(neigbours == 2 || neigbours == 3)
+                    {
+                        self = fixed4(1,1,1,1);
+                    }
+                    else
+                    {
+                        self = fixed4(0,0,0,1);
+                    }
+                }
+                else
+                {
+                    if(neigbours == 3)
+                    {
+                       self = fixed4(1,1,1,1); 
+                    }
+                    else
+                    {
+                        self = fixed4(0,0,0,1);
+                    }
+                }
+            
+                return self;
             }
+            
             ENDCG
         }
     }
