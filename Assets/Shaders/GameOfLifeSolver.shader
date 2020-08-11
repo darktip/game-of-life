@@ -19,6 +19,11 @@
                 return tex2D(_SelfTexture2D, IN.globalTexcoord + float2(x / _CustomRenderTextureWidth, y / _CustomRenderTextureHeight));
             }
 
+            bool IsAlive(float4 color)
+            {
+                return color.r > 0.5;
+            }
+
             float4 frag(v2f_customrendertexture IN) : COLOR
             {
                 fixed4 self = SampleNeighbour(IN, 0,0);
@@ -27,7 +32,7 @@
                                 SampleNeighbour(IN, -1,  0).r +             0                + SampleNeighbour(IN, 1,  0).r +
                                 SampleNeighbour(IN, -1,  1).r + SampleNeighbour(IN, 0,  1).r + SampleNeighbour(IN, 1,  1).r;
                 
-                if(self.r == 1)
+                if(IsAlive(self))
                 {
                     if(neigbours == 2 || neigbours == 3)
                     {
